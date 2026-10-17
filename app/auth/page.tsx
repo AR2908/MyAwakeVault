@@ -186,7 +186,7 @@ export default function AuthPage() {
                     </button>
                   )}
                 </div>
-                <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-white/5 text-white border border-white/10 rounded-xl py-3.5 px-5 focus:outline-none focus:border-emerald-500 focus:bg-white/10 transition-all text-sm font-mono placeholder-gray-600" placeholder="Minimum 8 Characters with special/Caps" />
+                <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-white/5 text-white border border-white/10 rounded-xl py-3.5 px-5 focus:outline-none focus:border-emerald-500 focus:bg-white/10 transition-all text-sm font-mono placeholder-gray-600" placeholder="Mini. 8-Characters with special/Case" />
               </div>
             )}
 
