@@ -172,7 +172,7 @@ export default function AuthPage() {
             {!isConfirming && !isResetting && (
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Agent ID (Email)</label>
-                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white/5 text-white border border-white/10 rounded-xl py-3.5 px-5 focus:outline-none focus:border-emerald-500 focus:bg-white/10 transition-all text-sm font-mono placeholder-gray-600" placeholder="agent@matrix.com" />
+                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white/5 text-white border border-white/10 rounded-xl py-3.5 px-5 focus:outline-none focus:border-emerald-500 focus:bg-white/10 transition-all text-sm font-mono placeholder-gray-600" placeholder="agent@email.com" />
               </div>
             )}
 
