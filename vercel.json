@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron?secret=MY_VAULT_SECRET_123",
-      "schedule": "0 * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
