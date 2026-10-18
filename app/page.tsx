@@ -5,6 +5,7 @@ import Link from "next/link";
 
 // Background Images Array (Same as Auth page for consistency)
 const backgroundImages = [
+  "https://cdn.dribbble.com/userupload/23147641/file/original-89395cb20967d0a25d5e0831b4a0d978.png",
   "https://cdn.dribbble.com/userupload/22428385/file/original-cff827408c1c897b8eca6952813b29fb.png",
   "https://cdn.dribbble.com/userupload/21884859/file/original-d64d335d85b4435f23eb87e025ea51b3.jpg",
   "https://cdn.dribbble.com/userupload/21926163/file/original-c3efc86b3dda67078d9805d649c6a4c6.jpg"
