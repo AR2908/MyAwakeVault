@@ -159,7 +159,6 @@ export default function Dashboard() {
 
   // View File Function
   const handleViewFile = (fileName: string) => {
-    // Ye new tab me open karega aur humare api route se secure URL mangega
     window.open(`/api/files/view?email=${userEmail}&fileName=${fileName}`, '_blank');
   };
 
@@ -366,18 +365,18 @@ export default function Dashboard() {
               ) : (
                 <ul className="divide-y divide-[#222]">
                   {uploadedFiles.map((file, index) => (
-                    <li key={index} className="flex justify-between items-center p-4 hover:bg-[#111] transition-colors group">
+                    <li key={index} className="flex justify-between items-center p-4 hover:bg-[#111] transition-colors">
                       <div className="flex items-center gap-3 overflow-hidden">
                         <svg className="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
                         <span className="text-xs text-gray-300 font-mono truncate">{file.name}</span>
                       </div>
                       
-                      {/* VIEW AND DELETE BUTTONS */}
-                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                        <button suppressHydrationWarning onClick={() => handleViewFile(file.name)} className="p-2 text-[#555] hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-all" title="View File">
+                      {/* VIEW AND DELETE BUTTONS - Permanently Visible */}
+                      <div className="flex gap-2 transition-all">
+                        <button suppressHydrationWarning onClick={() => handleViewFile(file.name)} className="p-2 text-emerald-500 bg-emerald-500/10 hover:bg-emerald-500/20 hover:text-emerald-400 rounded-lg transition-all" title="View File">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                         </button>
-                        <button suppressHydrationWarning onClick={() => setFileToDelete(file.name)} className="p-2 text-[#555] hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all" title="Delete File">
+                        <button suppressHydrationWarning onClick={() => setFileToDelete(file.name)} className="p-2 text-red-500 bg-red-500/10 hover:bg-red-500/20 hover:text-red-400 rounded-lg transition-all" title="Delete File">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         </button>
                       </div>
