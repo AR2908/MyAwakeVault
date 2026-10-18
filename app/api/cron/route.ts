@@ -4,16 +4,42 @@ import { DynamoDBDocumentClient, ScanCommand, UpdateCommand } from "@aws-sdk/lib
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
+
+// AWS Region
+const region = process.env.AWS_REGION as string;
 
 // Clients initialize karein
-const region = process.env.AWS_REGION;
 const dbClient = new DynamoDBClient({ region });
 const docClient = DynamoDBDocumentClient.from(dbClient);
 const sesClient = new SESClient({ region });
 const s3Client = new S3Client({ region });
 
-// S3 Correct Bucket Name Constant
+// SNS Client (Creds ke sath)
+const snsClient = new SNSClient({
+  region: region,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID as string,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY as string,
+  }
+});
+
 const BUCKET_NAME = "myawakevault-data-mumbai-123";
+
+// SMS bhejne ka function
+async function sendEmergencySMS(phoneNumber: string, vaultOwnerName: string) {
+  try {
+    const command = new PublishCommand({
+      Message: `URGENT (MyAwakeVault): ${vaultOwnerName}'s timer has expired. Emergency protocol activated. Please check your email for secure file links.`,
+      PhoneNumber: phoneNumber, 
+    });
+
+    await snsClient.send(command);
+    console.log(`SMS successfully sent to ${phoneNumber}`);
+  } catch (error) {
+    console.error("SMS bhejne mein error aaya:", error);
+  }
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -66,9 +92,8 @@ export async function GET(request: Request) {
             Key: item.Key
           });
           
-          // Link valid for 48 hours (172800 seconds)
           const url = await getSignedUrl(s3Client, getObjCmd, { expiresIn: 172800 });
-          const fileName = item.Key.split('/').pop(); // Sirf file ka naam nikalne ke liye
+          const fileName = item.Key.split('/').pop(); 
           
           fileLinksText += `📄 ${fileName}\nDownload Link: ${url}\n\n`;
         }
@@ -78,7 +103,7 @@ export async function GET(request: Request) {
 
       // 3. Email bhejein (Links ke sath)
       const emailCommand = new SendEmailCommand({
-        Source: "arjun.bathole.mawada@gmail.com", // Aapka verified email
+        Source: "arjun.bathole.mawada@gmail.com", 
         Destination: { ToAddresses: [user.trustedEmail] },
         Message: {
           Subject: { Data: "🚨 URGENT: MyAwakeVault Auto-Destruct Triggered" },
@@ -91,6 +116,19 @@ export async function GET(request: Request) {
       });
 
       await sesClient.send(emailCommand);
+
+      // 3.5. SMS Bhejein (Using whatsappNumber column)
+      let phoneToSend = user.whatsappNumber;
+      
+      if (phoneToSend) {
+        // Agar number mein + nahi hai, toh India ka code (+91) automatically add kar do
+        if (!phoneToSend.startsWith('+')) {
+          phoneToSend = `+91${phoneToSend}`;
+        }
+        await sendEmergencySMS(phoneToSend, user.userID);
+      } else {
+        console.log(`No whatsappNumber found for user ${user.userID}, skipping SMS.`);
+      }
 
       // 4. Status update karein
       const updateCommand = new UpdateCommand({
@@ -105,7 +143,7 @@ export async function GET(request: Request) {
       triggeredCount++;
     }
 
-    return NextResponse.json({ message: `Successfully triggered ${triggeredCount} vaults with secure file links.` });
+    return NextResponse.json({ message: `Successfully triggered ${triggeredCount} vaults. Emails and SMS sent.` });
 
   } catch (error) {
     console.error("Cron Error:", error);
