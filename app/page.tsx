@@ -17,7 +17,7 @@ export default function LandingPage() {
   useEffect(() => {
     const interval = setInterval(() => {
       setBgIndex((prevIndex) => (prevIndex + 1) % backgroundImages.length);
-    }, 3000);
+    }, 2000);
     return () => clearInterval(interval);
   }, []);
 
