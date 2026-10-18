@@ -157,12 +157,13 @@ export default function LandingPage() {
           <hr>Developed By Arjun Bathole</hr>
         </p>
       {/* Footer */}
-      <footer className="relative z-10 border-t border-white/5 bg-black/50 backdrop-blur-md py-6 md:py-8 text-center mt-auto">
-        <p className="text-gray-600 text-xs font-medium">
-        MyAwakeVault. All rights reserved.
-          <hr>Developed By Arjun Bathole</hr>
-        </p>
-      </footer>
+   <footer className="relative z-10 border-t border-white/5 bg-black/50 backdrop-blur-md py-6 md:py-8 text-center mt-auto">
+  <p className="text-gray-600 text-xs font-medium">
+    MyAwakeVault. All rights reserved.
+    <br className="my-1" />
+    <span className="text-gray-500">Developed By Arjun Bathole</span>
+  </p>
+</footer>
       
     </div>
   );
