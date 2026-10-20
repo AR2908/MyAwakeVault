@@ -111,6 +111,8 @@ export default function Dashboard() {
   };
 
   const handleAwakeClick = async () => {
+    if (customDays === 0) return; // Prevent normal reset if test mode is active but not submitted
+
     setTimeLeft(customDays * 86400); 
     try {
       await fetch('/api/vault', {
@@ -123,10 +125,10 @@ export default function Dashboard() {
 
   // Auto-format for DD/MM/YYYY
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value.replace(/\D/g, ''); // Remove non-digits
+    let val = e.target.value.replace(/\D/g, ''); 
     if (val.length > 2) val = val.slice(0, 2) + '/' + val.slice(2);
     if (val.length > 5) val = val.slice(0, 5) + '/' + val.slice(5);
-    setManualDateStr(val.slice(0, 10)); // Max 10 chars (DD/MM/YYYY)
+    setManualDateStr(val.slice(0, 10)); 
   };
 
   const handleManualOverride = async () => {
@@ -138,7 +140,7 @@ export default function Dashboard() {
     // Parse DD/MM/YYYY
     const dateParts = manualDateStr.split('/');
     const day = parseInt(dateParts[0], 10);
-    const month = parseInt(dateParts[1], 10) - 1; // Months are 0-11 in JS
+    const month = parseInt(dateParts[1], 10) - 1; 
     const year = parseInt(dateParts[2], 10);
 
     // Parse Time
@@ -263,6 +265,8 @@ export default function Dashboard() {
 
   const handleSaveContacts = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (customDays === 0) return; // Ignore normal save if test override is selected
+    
     try {
       const response = await fetch('/api/settings', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -442,7 +446,7 @@ export default function Dashboard() {
         </div>
 
         <div className="lg:col-span-5">
-          <div className="rounded-3xl bg-[#0a0a0a]/80 backdrop-blur-sm border border-[#222] p-10 shadow-2xl">
+          <div className="rounded-3xl bg-[#0a0a0a]/80 backdrop-blur-sm border border-[#222] p-10 shadow-2xl relative sticky top-10">
             <h2 className="text-white text-sm font-bold uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
               <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
               Protocol Settings
@@ -452,17 +456,57 @@ export default function Dashboard() {
               <div className="space-y-3">
                 <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Trigger Interval (Countdown Limit)</label>
                 <div className="relative">
-                  <select suppressHydrationWarning value={customDays} onChange={(e) => setCustomDays(Number(e.target.value))} className="w-full bg-black border border-[#333] rounded-xl py-4 px-5 focus:outline-none focus:border-emerald-500 text-sm font-mono cursor-pointer appearance-none text-gray-300">
+                  <select 
+                    suppressHydrationWarning 
+                    value={customDays} 
+                    onChange={(e) => setCustomDays(Number(e.target.value))} 
+                    className={`w-full bg-black border rounded-xl py-4 px-5 focus:outline-none text-sm font-mono cursor-pointer appearance-none ${customDays === 0 ? 'border-red-500/50 text-red-400 focus:border-red-500' : 'border-[#333] text-gray-300 focus:border-emerald-500'}`}
+                  >
                     <option value={7}>7 Days Protocol</option>
                     <option value={30}>30 Days Protocol</option>
                     <option value={90}>90 Days Protocol</option>
                     <option value={365}>365 Days Protocol</option>
+                    <option value={0}>Set Manual Date</option>
                   </select>
-                  <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-emerald-500">▼</div>
+                  <div className={`absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none ${customDays === 0 ? 'text-red-500' : 'text-emerald-500'}`}>▼</div>
                 </div>
               </div>
 
-              <div className="space-y-3">
+              {/* TEST OVERRIDE SECTION - VISIBLE ONLY WHEN 0 IS SELECTED */}
+              {customDays === 0 && (
+                <div className="p-5 border border-red-500/30 bg-red-950/10 rounded-xl space-y-4 animate-fade-in">
+                  <div className="flex gap-3">
+                    <div className="w-3/5">
+                      <label className="text-[9px] font-bold text-red-500/70 uppercase tracking-widest block mb-2">Manual Date (DD/MM/YYYY)</label>
+                      <input 
+                        type="text" 
+                        placeholder="DD/MM/YYYY"
+                        value={manualDateStr} 
+                        onChange={handleDateChange} 
+                        className="w-full bg-black text-white border border-red-500/30 rounded-lg py-2 px-3 focus:outline-none focus:border-red-500 text-sm font-mono text-center placeholder-red-900/50" 
+                      />
+                    </div>
+                    <div className="w-2/5">
+                      <label className="text-[9px] font-bold text-red-500/70 uppercase tracking-widest block mb-2">Time</label>
+                      <input 
+                        type="time" 
+                        value={manualTimeStr} 
+                        onChange={(e) => setManualTimeStr(e.target.value)} 
+                        className="w-full bg-black text-white border border-red-500/30 rounded-lg py-2 px-3 focus:outline-none focus:border-red-500 text-sm font-mono text-center" 
+                      />
+                    </div>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={handleManualOverride} 
+                    className="w-full bg-red-900/20 hover:bg-red-900/40 text-red-400 font-bold py-2 rounded-lg uppercase tracking-widest text-[10px] border border-red-500/30 transition-all"
+                  >
+                    Force Timer Expiry
+                  </button>
+                </div>
+              )}
+
+              <div className="space-y-3 mt-4">
                 <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Successor Email (Emergency Contact)</label>
                 <input suppressHydrationWarning type="email" required value={trustedEmail || ""} onChange={(e) => setTrustedEmail(e.target.value)} className="w-full bg-black text-white border border-[#333] rounded-xl py-4 px-5 focus:outline-none focus:border-emerald-500 text-sm font-mono placeholder-[#444] transition-all" placeholder="secure@network.com" />
               </div>
@@ -475,52 +519,13 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <button suppressHydrationWarning type="submit" className="w-full mt-6 bg-[#111] hover:bg-emerald-900/30 text-emerald-400 font-bold py-5 rounded-xl uppercase tracking-[0.2em] text-[11px] border border-[#333] hover:border-emerald-500/50 transition-all shadow-lg">
-                Update Configuration
-              </button>
+              {/* Show Update Button only if Test Mode is NOT selected */}
+              {customDays !== 0 && (
+                <button suppressHydrationWarning type="submit" className="w-full mt-6 bg-[#111] hover:bg-emerald-900/30 text-emerald-400 font-bold py-5 rounded-xl uppercase tracking-[0.2em] text-[11px] border border-[#333] hover:border-emerald-500/50 transition-all shadow-lg">
+                  Update Configuration
+                </button>
+              )}
             </form>
-          </div>
-
-          {/* NAYA SECTION: TEST MODE with DD/MM/YYYY */}
-          <div className="mt-8 rounded-3xl bg-[#110505]/80 backdrop-blur-sm border border-red-500/30 p-8 shadow-2xl relative sticky top-10">
-            <h2 className="text-red-500 text-[10px] font-bold uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-              SET MAUNAL DATE
-            </h2>
-            <div className="space-y-4">
-              
-              <div className="flex gap-3">
-                {/* Date Input: DD/MM/YYYY */}
-                <div className="w-3/5">
-                  <label className="text-[9px] font-bold text-red-500/70 uppercase tracking-widest block mb-2">Date (DD/MM/YYYY)</label>
-                  <input 
-                    type="text" 
-                    placeholder="DD/MM/YYYY"
-                    value={manualDateStr} 
-                    onChange={handleDateChange} 
-                    className="w-full bg-black text-white border border-red-500/30 rounded-xl py-3 px-4 focus:outline-none focus:border-red-500 text-sm font-mono text-center placeholder-red-900/50" 
-                  />
-                </div>
-                
-                {/* Time Input */}
-                <div className="w-2/5">
-                  <label className="text-[9px] font-bold text-red-500/70 uppercase tracking-widest block mb-2">Time</label>
-                  <input 
-                    type="time" 
-                    value={manualTimeStr} 
-                    onChange={(e) => setManualTimeStr(e.target.value)} 
-                    className="w-full bg-black text-white border border-red-500/30 rounded-xl py-3 px-4 focus:outline-none focus:border-red-500 text-sm font-mono text-center" 
-                  />
-                </div>
-              </div>
-
-              <button 
-                onClick={handleManualOverride} 
-                className="w-full bg-red-900/20 hover:bg-red-900/40 text-red-400 font-bold py-3 rounded-xl uppercase tracking-widest text-[10px] border border-red-500/30 transition-all mt-2"
-              >
-                SET TIMER
-              </button>
-            </div>
           </div>
         </div>
 
