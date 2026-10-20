@@ -22,9 +22,6 @@ export default function Dashboard() {
   const [customDays, setCustomDays] = useState(30);
   const [timeLeft, setTimeLeft] = useState(0);
   
-  // Test Mode State
-  const [manualDateTime, setManualDateTime] = useState("");
-  
   // Upload States
   const [isUploading, setIsUploading] = useState(false);
   const [uploadFileName, setUploadFileName] = useState("");
@@ -34,6 +31,9 @@ export default function Dashboard() {
   const [uploadedFiles, setUploadedFiles] = useState<VaultFile[]>([]);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null); 
   
+  // Test Mode State
+  const [manualDate, setManualDate] = useState("");
+
   const [toast, setToast] = useState<{ show: boolean; message: string; type: "success" | "error" | "info" }>({ show: false, message: "", type: "info" });
   const [showDropdown, setShowDropdown] = useState(false);
 
@@ -71,7 +71,6 @@ export default function Dashboard() {
     } else { window.location.href = '/auth'; }
   }, []);
 
-  // Fetch Vault Config & Files
   useEffect(() => {
     if (!userEmail || userEmail.includes('-')) return; 
     
@@ -96,7 +95,6 @@ export default function Dashboard() {
     fetchUserFiles();
   }, [userEmail]);
 
-  // Timer Logic
   useEffect(() => {
     if (timeLeft <= 0) return;
     const timer = setInterval(() => setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0)), 1000);
@@ -120,6 +118,37 @@ export default function Dashboard() {
       });
       showToast("Protocol reset confirmed. Timer updated.", "success");
     } catch { showToast("Connection to mainframe failed.", "error"); }
+  };
+
+  // Naya Function: Test Mode Override ke liye
+  const handleManualOverride = async () => {
+    if (!manualDate) {
+      showToast("Select date and time first.", "error");
+      return;
+    }
+    
+    const isoDate = new Date(manualDate).toISOString();
+    
+    try {
+      const response = await fetch('/api/vault', {
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' },
+        // Backend ko batayenge ki override karna hai
+        body: JSON.stringify({ status: 'AWAKE', overrideDeadline: isoDate, email: userEmail }) 
+      });
+      
+      const result = await response.json();
+      if (result.success) {
+        showToast("Test deadline locked in DB.", "success");
+        // Screen par timer turant update karein
+        const diffInSeconds = Math.floor((new Date(isoDate).getTime() - new Date().getTime()) / 1000);
+        setTimeLeft(diffInSeconds > 0 ? diffInSeconds : 0);
+      } else {
+        showToast("Backend failed to update.", "error");
+      }
+    } catch { 
+      showToast("Override failed. Check console.", "error"); 
+    }
   };
 
   const fetchUserFiles = async () => {
@@ -211,31 +240,12 @@ export default function Dashboard() {
   const handleSaveContacts = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // manualDeadline ko backend bhejne ke liye add kiya hai
-      const payload = { 
-        email: userEmail, 
-        customDays, 
-        trustedEmail, 
-        whatsappNumber: whatsapp,
-        manualDeadline: manualDateTime ? new Date(manualDateTime).toISOString() : null
-      };
-
       const response = await fetch('/api/settings', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ email: userEmail, customDays, trustedEmail, whatsappNumber: whatsapp })
       });
       const data = await response.json();
-      if(data.success) {
-        showToast(manualDateTime ? "Test Mode Active: Timer Overridden!" : "Configuration locked securely.", "success");
-        
-        // Agar test time diya hai, toh on-screen timer ko bhi turant update kar do
-        if (manualDateTime) {
-          const target = new Date(manualDateTime).getTime();
-          const now = new Date().getTime();
-          setTimeLeft(Math.max(0, Math.floor((target - now) / 1000)));
-          setManualDateTime(""); // Select hone ke baad input clear kar do
-        }
-      }
+      if(data.success) showToast("Configuration locked securely.", "success");
       else showToast(`Error: ${data.message}`, "error");
     } catch { showToast("Failed to save configuration.", "error"); }
   };
@@ -254,6 +264,7 @@ export default function Dashboard() {
       <div className="absolute inset-0 z-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
       <div className="absolute top-[-200px] left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-emerald-900/20 blur-[120px] pointer-events-none z-0"></div>
 
+      {/* --- CUSTOM DELETE MODAL --- */}
       {fileToDelete && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
           <div className="bg-[#0a0a0a] border border-red-500/50 rounded-2xl p-8 max-w-sm w-full shadow-[0_0_50px_rgba(239,68,68,0.2)]">
@@ -407,7 +418,7 @@ export default function Dashboard() {
         </div>
 
         <div className="lg:col-span-5">
-          <div className="rounded-3xl bg-[#0a0a0a]/80 backdrop-blur-sm border border-[#222] p-10 sticky top-10 shadow-2xl">
+          <div className="rounded-3xl bg-[#0a0a0a]/80 backdrop-blur-sm border border-[#222] p-10 shadow-2xl">
             <h2 className="text-white text-sm font-bold uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
               <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
               Protocol Settings
@@ -440,25 +451,32 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* NEW DEVELOPER TEST MODE SECTION */}
-              <div className="space-y-3 pt-5 border-t border-[#333]">
-                <label className="text-[10px] font-bold text-red-500 uppercase tracking-widest flex items-center gap-2">
-                  <svg className="w-3 h-3 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                  Dev Test Mode (Manual Expiry Time)
-                </label>
-                <input 
-                  type="datetime-local" 
-                  value={manualDateTime} 
-                  onChange={(e) => setManualDateTime(e.target.value)} 
-                  className="w-full bg-red-950/20 text-red-400 border border-red-500/30 rounded-xl py-3 px-5 focus:outline-none focus:border-red-500 text-sm font-mono transition-all"
-                />
-                <p className="text-[9px] text-gray-500 font-mono">Set exact time for testing. Leave empty for normal operation.</p>
-              </div>
-
               <button suppressHydrationWarning type="submit" className="w-full mt-6 bg-[#111] hover:bg-emerald-900/30 text-emerald-400 font-bold py-5 rounded-xl uppercase tracking-[0.2em] text-[11px] border border-[#333] hover:border-emerald-500/50 transition-all shadow-lg">
                 Update Configuration
               </button>
             </form>
+          </div>
+
+          {/* NAYA SECTION: TEST MODE */}
+          <div className="mt-8 rounded-3xl bg-[#110505]/80 backdrop-blur-sm border border-red-500/30 p-8 shadow-2xl relative">
+            <h2 className="text-red-500 text-[10px] font-bold uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+              Test Override (Dev Mode)
+            </h2>
+            <div className="space-y-4">
+              <input 
+                type="datetime-local" 
+                value={manualDate} 
+                onChange={(e) => setManualDate(e.target.value)} 
+                className="w-full bg-black text-white border border-red-500/30 rounded-xl py-3 px-4 focus:outline-none focus:border-red-500 text-sm font-mono custom-calendar-icon" 
+              />
+              <button 
+                onClick={handleManualOverride} 
+                className="w-full bg-red-900/20 hover:bg-red-900/40 text-red-400 font-bold py-3 rounded-xl uppercase tracking-widest text-[10px] border border-red-500/30 transition-all"
+              >
+                Force Timer Expiry
+              </button>
+            </div>
           </div>
         </div>
 
