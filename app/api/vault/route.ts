@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, PutCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, GetCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 
 const client = new DynamoDBClient({ region: process.env.AWS_REGION });
 const docClient = DynamoDBDocumentClient.from(client);
 
-// NAYA: Data fetch karne ke liye GET method
+// Data fetch karne ke liye GET method
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -38,27 +38,43 @@ export async function POST(request: Request) {
     const data = await request.json();
 
     if (data.status === 'AWAKE') {
-      // User ke bheje gaye custom din (agar nahi bheja toh default 180)
-      const days = data.customDays ? parseInt(data.customDays) : 180;
+      const days = data.customDays ? parseInt(data.customDays) : 30;
       
-      const nextAwakeDeadline = new Date();
-      nextAwakeDeadline.setDate(nextAwakeDeadline.getDate() + days);
+      let deadlineToSave;
 
-      const command = new PutCommand({
+      // Agar frontend se Test Mode ka overrideDeadline aaya hai
+      if (data.overrideDeadline) {
+        deadlineToSave = data.overrideDeadline;
+      } else {
+        // Normal "I AM AWAKE" button ke liye
+        const nextAwakeDeadline = new Date();
+        nextAwakeDeadline.setDate(nextAwakeDeadline.getDate() + days);
+        deadlineToSave = nextAwakeDeadline.toISOString();
+      }
+
+      // UpdateCommand use kar rahe hain taaki Email/SMS ke contacts delete na hon
+      const command = new UpdateCommand({
         TableName: "VaultTimers",
-        Item: {
-          userID: data.email, // "user_123" ko data.email se replace kar diya
-          lastAwakeTime: new Date().toISOString(),
-          deadlineTime: nextAwakeDeadline.toISOString(),
-          timerDuration: days,
-          status: "ACTIVE"
+        Key: { userID: data.email },
+        UpdateExpression: "SET lastAwakeTime = :lastAwake, deadlineTime = :deadline, timerDuration = :duration, #status = :statusVal",
+        ExpressionAttributeNames: {
+          "#status": "status"
         },
+        ExpressionAttributeValues: {
+          ":lastAwake": new Date().toISOString(),
+          ":deadline": deadlineToSave,
+          ":duration": days,
+          ":statusVal": "ACTIVE"
+        }
       });
 
       await docClient.send(command);
 
       return NextResponse.json(
-        { success: true, message: `Vault locked for the next ${days} days!` },
+        { 
+          success: true, 
+          message: data.overrideDeadline ? "Test deadline locked in DB!" : `Vault locked for the next ${days} days!` 
+        },
         { status: 200 }
       );
     }
