@@ -467,7 +467,7 @@ export default function Dashboard() {
                     <option value={30}>30 Days Protocol</option>
                     <option value={90}>90 Days Protocol</option>
                     <option value={365}>365 Days Protocol</option>
-                    <option value={0}>Manual Date</option>
+                    <option value={0}>Test Override (Manual Date)</option>
                   </select>
                   <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-emerald-500">▼</div>
                 </div>
@@ -487,7 +487,7 @@ export default function Dashboard() {
                         type="date" 
                         value={overrideDate} 
                         onChange={(e) => setOverrideDate(e.target.value)} 
-                        className="w-full bg-black text-gray-300 border border-[#333] rounded-lg py-3 px-3 focus:outline-none focus:border-emerald-500 text-sm font-mono cursor-pointer transition-colors" 
+                        className="w-full bg-black text-gray-300 border border-[#333] rounded-lg py-3 px-3 focus:outline-none focus:border-emerald-500 text-sm font-mono cursor-pointer transition-colors [color-scheme:dark]" 
                       />
                     </div>
                     <div className="w-1/2">
@@ -496,7 +496,7 @@ export default function Dashboard() {
                         type="time" 
                         value={overrideTime} 
                         onChange={(e) => setOverrideTime(e.target.value)} 
-                        className="w-full bg-black text-gray-300 border border-[#333] rounded-lg py-3 px-3 focus:outline-none focus:border-emerald-500 text-sm font-mono cursor-pointer transition-colors" 
+                        className="w-full bg-black text-gray-300 border border-[#333] rounded-lg py-3 px-3 focus:outline-none focus:border-emerald-500 text-sm font-mono cursor-pointer transition-colors [color-scheme:dark]" 
                       />
                     </div>
                   </div>
@@ -505,7 +505,7 @@ export default function Dashboard() {
                     onClick={handleManualOverride} 
                     className="w-full bg-[#111] hover:bg-emerald-900/30 text-emerald-400 font-bold py-3.5 rounded-lg uppercase tracking-widest text-[10px] border border-[#333] hover:border-emerald-500/50 transition-all shadow-md"
                   >
-                        Update Configuration
+                    Update Configuration
                   </button>
                 </div>
               )}
