@@ -22,6 +22,9 @@ export default function Dashboard() {
   const [customDays, setCustomDays] = useState(30);
   const [timeLeft, setTimeLeft] = useState(0);
   
+  // Test Mode State
+  const [manualDateTime, setManualDateTime] = useState("");
+  
   // Upload States
   const [isUploading, setIsUploading] = useState(false);
   const [uploadFileName, setUploadFileName] = useState("");
@@ -29,7 +32,7 @@ export default function Dashboard() {
   
   // Files State
   const [uploadedFiles, setUploadedFiles] = useState<VaultFile[]>([]);
-  const [fileToDelete, setFileToDelete] = useState<string | null>(null); // Custom Delete Modal State
+  const [fileToDelete, setFileToDelete] = useState<string | null>(null); 
   
   const [toast, setToast] = useState<{ show: boolean; message: string; type: "success" | "error" | "info" }>({ show: false, message: "", type: "info" });
   const [showDropdown, setShowDropdown] = useState(false);
@@ -132,11 +135,10 @@ export default function Dashboard() {
     }
   };
 
-  // Custom Delete Function
   const confirmDeleteFile = async () => {
     if (!fileToDelete) return;
     const fileName = fileToDelete;
-    setFileToDelete(null); // Close Modal immediately
+    setFileToDelete(null); 
 
     try {
       const response = await fetch(`/api/files`, {
@@ -157,7 +159,6 @@ export default function Dashboard() {
     }
   };
 
-  // View File Function
   const handleViewFile = (fileName: string) => {
     window.open(`/api/files/view?email=${userEmail}&fileName=${fileName}`, '_blank');
   };
@@ -210,12 +211,31 @@ export default function Dashboard() {
   const handleSaveContacts = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // manualDeadline ko backend bhejne ke liye add kiya hai
+      const payload = { 
+        email: userEmail, 
+        customDays, 
+        trustedEmail, 
+        whatsappNumber: whatsapp,
+        manualDeadline: manualDateTime ? new Date(manualDateTime).toISOString() : null
+      };
+
       const response = await fetch('/api/settings', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: userEmail, customDays, trustedEmail, whatsappNumber: whatsapp })
+        body: JSON.stringify(payload)
       });
       const data = await response.json();
-      if(data.success) showToast("Configuration locked securely.", "success");
+      if(data.success) {
+        showToast(manualDateTime ? "Test Mode Active: Timer Overridden!" : "Configuration locked securely.", "success");
+        
+        // Agar test time diya hai, toh on-screen timer ko bhi turant update kar do
+        if (manualDateTime) {
+          const target = new Date(manualDateTime).getTime();
+          const now = new Date().getTime();
+          setTimeLeft(Math.max(0, Math.floor((target - now) / 1000)));
+          setManualDateTime(""); // Select hone ke baad input clear kar do
+        }
+      }
       else showToast(`Error: ${data.message}`, "error");
     } catch { showToast("Failed to save configuration.", "error"); }
   };
@@ -234,7 +254,6 @@ export default function Dashboard() {
       <div className="absolute inset-0 z-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
       <div className="absolute top-[-200px] left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-emerald-900/20 blur-[120px] pointer-events-none z-0"></div>
 
-      {/* --- CUSTOM DELETE MODAL --- */}
       {fileToDelete && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
           <div className="bg-[#0a0a0a] border border-red-500/50 rounded-2xl p-8 max-w-sm w-full shadow-[0_0_50px_rgba(239,68,68,0.2)]">
@@ -371,7 +390,6 @@ export default function Dashboard() {
                         <span className="text-xs text-gray-300 font-mono truncate">{file.name}</span>
                       </div>
                       
-                      {/* VIEW AND DELETE BUTTONS - Permanently Visible */}
                       <div className="flex gap-2 transition-all">
                         <button suppressHydrationWarning onClick={() => handleViewFile(file.name)} className="p-2 text-emerald-500 bg-emerald-500/10 hover:bg-emerald-500/20 hover:text-emerald-400 rounded-lg transition-all" title="View File">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
@@ -420,6 +438,21 @@ export default function Dashboard() {
                   <span className="flex items-center px-5 bg-[#111] text-emerald-500 text-xs font-mono border-r border-[#333] font-bold">+91</span>
                   <input suppressHydrationWarning type="tel" required pattern="[0-9]{10}" value={whatsapp || ""} onChange={(e) => setWhatsapp(e.target.value)} className="w-full bg-black text-white py-4 px-5 focus:outline-none text-sm font-mono placeholder-[#444]" placeholder="9876543210" />
                 </div>
+              </div>
+
+              {/* NEW DEVELOPER TEST MODE SECTION */}
+              <div className="space-y-3 pt-5 border-t border-[#333]">
+                <label className="text-[10px] font-bold text-red-500 uppercase tracking-widest flex items-center gap-2">
+                  <svg className="w-3 h-3 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  Dev Test Mode (Manual Expiry Time)
+                </label>
+                <input 
+                  type="datetime-local" 
+                  value={manualDateTime} 
+                  onChange={(e) => setManualDateTime(e.target.value)} 
+                  className="w-full bg-red-950/20 text-red-400 border border-red-500/30 rounded-xl py-3 px-5 focus:outline-none focus:border-red-500 text-sm font-mono transition-all"
+                />
+                <p className="text-[9px] text-gray-500 font-mono">Set exact time for testing. Leave empty for normal operation.</p>
               </div>
 
               <button suppressHydrationWarning type="submit" className="w-full mt-6 bg-[#111] hover:bg-emerald-900/30 text-emerald-400 font-bold py-5 rounded-xl uppercase tracking-[0.2em] text-[11px] border border-[#333] hover:border-emerald-500/50 transition-all shadow-lg">
