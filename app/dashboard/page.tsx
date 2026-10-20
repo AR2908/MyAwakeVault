@@ -467,7 +467,7 @@ export default function Dashboard() {
                     <option value={30}>30 Days Protocol</option>
                     <option value={90}>90 Days Protocol</option>
                     <option value={365}>365 Days Protocol</option>
-                    <option value={0}>Test Override (Manual Date)</option>
+                    <option value={0}>Set Manual Date</option>
                   </select>
                   <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-emerald-500">▼</div>
                 </div>
@@ -480,8 +480,10 @@ export default function Dashboard() {
                     <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                     Select Expiry
                   </h3>
-                  <div className="flex gap-4">
-                    <div className="w-1/2">
+                  
+                  {/* MOBILE MEIN STACKED (UPAR-NEECHE), DESKTOP MEIN SIDE-BY-SIDE */}
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="w-full">
                       <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-2">Date</label>
                       <input 
                         type="date" 
@@ -490,7 +492,7 @@ export default function Dashboard() {
                         className="w-full bg-black text-gray-300 border border-[#333] rounded-lg py-3 px-3 focus:outline-none focus:border-emerald-500 text-sm font-mono cursor-pointer transition-colors [color-scheme:dark]" 
                       />
                     </div>
-                    <div className="w-1/2">
+                    <div className="w-full">
                       <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-2">Time</label>
                       <input 
                         type="time" 
