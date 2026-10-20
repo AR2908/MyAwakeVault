@@ -31,7 +31,7 @@ export default function Dashboard() {
   const [uploadedFiles, setUploadedFiles] = useState<VaultFile[]>([]);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null); 
   
-  // Test Mode States (Custom DD/MM/YYYY and Time)
+  // Test Mode States
   const [manualDateStr, setManualDateStr] = useState("");
   const [manualTimeStr, setManualTimeStr] = useState("");
 
@@ -111,7 +111,7 @@ export default function Dashboard() {
   };
 
   const handleAwakeClick = async () => {
-    if (customDays === 0) return; // Prevent normal reset if test mode is active but not submitted
+    if (customDays === 0) return; 
 
     setTimeLeft(customDays * 86400); 
     try {
@@ -123,7 +123,6 @@ export default function Dashboard() {
     } catch { showToast("Connection to mainframe failed.", "error"); }
   };
 
-  // Auto-format for DD/MM/YYYY
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value.replace(/\D/g, ''); 
     if (val.length > 2) val = val.slice(0, 2) + '/' + val.slice(2);
@@ -134,6 +133,11 @@ export default function Dashboard() {
   const handleManualOverride = async () => {
     if (manualDateStr.length !== 10 || !manualTimeStr) {
       showToast("Please enter complete DD/MM/YYYY and Time.", "error");
+      return;
+    }
+
+    if (!trustedEmail || !whatsapp) {
+      showToast("Please enter Successor Email and Phone.", "error");
       return;
     }
     
@@ -158,6 +162,19 @@ export default function Dashboard() {
     const isoDate = overrideDate.toISOString();
     
     try {
+      // Step 1: Save Contacts First!
+      const settingsResponse = await fetch('/api/settings', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userEmail, customDays: 30, trustedEmail, whatsappNumber: whatsapp })
+      });
+      const settingsData = await settingsResponse.json();
+      
+      if (!settingsData.success) {
+        showToast("Failed to save contacts to DB.", "error");
+        return;
+      }
+
+      // Step 2: Override the Timer
       const response = await fetch('/api/vault', {
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
@@ -166,11 +183,11 @@ export default function Dashboard() {
       
       const result = await response.json();
       if (result.success) {
-        showToast("Test deadline locked in DB.", "success");
+        showToast("Contacts saved & Test deadline locked!", "success");
         const diffInSeconds = Math.floor((overrideDate.getTime() - new Date().getTime()) / 1000);
         setTimeLeft(diffInSeconds > 0 ? diffInSeconds : 0);
       } else {
-        showToast("Backend failed to update.", "error");
+        showToast("Backend failed to update timer.", "error");
       }
     } catch { 
       showToast("Override failed. Check console.", "error"); 
@@ -265,7 +282,7 @@ export default function Dashboard() {
 
   const handleSaveContacts = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (customDays === 0) return; // Ignore normal save if test override is selected
+    if (customDays === 0) return; 
     
     try {
       const response = await fetch('/api/settings', {
@@ -466,7 +483,7 @@ export default function Dashboard() {
                     <option value={30}>30 Days Protocol</option>
                     <option value={90}>90 Days Protocol</option>
                     <option value={365}>365 Days Protocol</option>
-                    <option value={0}>Set Manual Date</option>
+                    <option value={0}>Manual Date </option>
                   </select>
                   <div className={`absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none ${customDays === 0 ? 'text-red-500' : 'text-emerald-500'}`}>▼</div>
                 </div>
@@ -477,7 +494,7 @@ export default function Dashboard() {
                 <div className="p-5 border border-red-500/30 bg-red-950/10 rounded-xl space-y-4 animate-fade-in">
                   <div className="flex gap-3">
                     <div className="w-3/5">
-                      <label className="text-[9px] font-bold text-red-500/70 uppercase tracking-widest block mb-2">Manual Date (DD/MM/YYYY)</label>
+                      <label className="text-[9px] font-bold text-red-500/70 uppercase tracking-widest block mb-2">Date (DD/MM/YYYY)</label>
                       <input 
                         type="text" 
                         placeholder="DD/MM/YYYY"
@@ -487,7 +504,7 @@ export default function Dashboard() {
                       />
                     </div>
                     <div className="w-2/5">
-                      <label className="text-[9px] font-bold text-red-500/70 uppercase tracking-widest block mb-2">Time</label>
+                      <label className="text-[9px] font-bold text-green-500/70 uppercase tracking-widest block mb-2">Time</label>
                       <input 
                         type="time" 
                         value={manualTimeStr} 
@@ -501,7 +518,7 @@ export default function Dashboard() {
                     onClick={handleManualOverride} 
                     className="w-full bg-red-900/20 hover:bg-red-900/40 text-red-400 font-bold py-2 rounded-lg uppercase tracking-widest text-[10px] border border-red-500/30 transition-all"
                   >
-                    Force Timer Expiry
+                    SET TIME
                   </button>
                 </div>
               )}
