@@ -31,9 +31,9 @@ export default function Dashboard() {
   const [uploadedFiles, setUploadedFiles] = useState<VaultFile[]>([]);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null); 
   
-  // Test Mode States
-  const [manualDateStr, setManualDateStr] = useState("");
-  const [manualTimeStr, setManualTimeStr] = useState("");
+  // Test Mode States (Native Pickers)
+  const [overrideDate, setOverrideDate] = useState("");
+  const [overrideTime, setOverrideTime] = useState("");
 
   const [toast, setToast] = useState<{ show: boolean; message: string; type: "success" | "error" | "info" }>({ show: false, message: "", type: "info" });
   const [showDropdown, setShowDropdown] = useState(false);
@@ -123,16 +123,9 @@ export default function Dashboard() {
     } catch { showToast("Connection to mainframe failed.", "error"); }
   };
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value.replace(/\D/g, ''); 
-    if (val.length > 2) val = val.slice(0, 2) + '/' + val.slice(2);
-    if (val.length > 5) val = val.slice(0, 5) + '/' + val.slice(5);
-    setManualDateStr(val.slice(0, 10)); 
-  };
-
   const handleManualOverride = async () => {
-    if (manualDateStr.length !== 10 || !manualTimeStr) {
-      showToast("Please enter complete DD/MM/YYYY and Time.", "error");
+    if (!overrideDate || !overrideTime) {
+      showToast("Please select both Date and Time from the picker.", "error");
       return;
     }
 
@@ -141,28 +134,19 @@ export default function Dashboard() {
       return;
     }
     
-    // Parse DD/MM/YYYY
-    const dateParts = manualDateStr.split('/');
-    const day = parseInt(dateParts[0], 10);
-    const month = parseInt(dateParts[1], 10) - 1; 
-    const year = parseInt(dateParts[2], 10);
-
-    // Parse Time
-    const timeParts = manualTimeStr.split(':');
-    const hours = parseInt(timeParts[0], 10);
-    const minutes = parseInt(timeParts[1], 10);
-
-    const overrideDate = new Date(year, month, day, hours, minutes);
+    // Combine Native Date and Time values
+    const dateTimeString = `${overrideDate}T${overrideTime}`;
+    const manualDateObj = new Date(dateTimeString);
     
-    if (isNaN(overrideDate.getTime())) {
-      showToast("Invalid date/time format.", "error");
+    if (isNaN(manualDateObj.getTime())) {
+      showToast("Invalid date/time selected.", "error");
       return;
     }
 
-    const isoDate = overrideDate.toISOString();
+    const isoDate = manualDateObj.toISOString();
     
     try {
-      // Step 1: Save Contacts First!
+      // Step 1: Save Contacts First
       const settingsResponse = await fetch('/api/settings', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: userEmail, customDays: 30, trustedEmail, whatsappNumber: whatsapp })
@@ -183,8 +167,8 @@ export default function Dashboard() {
       
       const result = await response.json();
       if (result.success) {
-        showToast("Contacts saved & Test deadline locked!", "success");
-        const diffInSeconds = Math.floor((overrideDate.getTime() - new Date().getTime()) / 1000);
+        showToast("Contacts saved & Timer updated manually!", "success");
+        const diffInSeconds = Math.floor((manualDateObj.getTime() - new Date().getTime()) / 1000);
         setTimeLeft(diffInSeconds > 0 ? diffInSeconds : 0);
       } else {
         showToast("Backend failed to update timer.", "error");
@@ -477,48 +461,51 @@ export default function Dashboard() {
                     suppressHydrationWarning 
                     value={customDays} 
                     onChange={(e) => setCustomDays(Number(e.target.value))} 
-                    className={`w-full bg-black border rounded-xl py-4 px-5 focus:outline-none text-sm font-mono cursor-pointer appearance-none ${customDays === 0 ? 'border-red-500/50 text-red-400 focus:border-red-500' : 'border-[#333] text-gray-300 focus:border-emerald-500'}`}
+                    className="w-full bg-black border border-[#333] text-gray-300 focus:border-emerald-500 rounded-xl py-4 px-5 focus:outline-none text-sm font-mono cursor-pointer appearance-none transition-colors"
                   >
                     <option value={7}>7 Days Protocol</option>
                     <option value={30}>30 Days Protocol</option>
                     <option value={90}>90 Days Protocol</option>
                     <option value={365}>365 Days Protocol</option>
-                    <option value={0}>Manual Date </option>
+                    <option value={0}>Manual Date</option>
                   </select>
-                  <div className={`absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none ${customDays === 0 ? 'text-red-500' : 'text-emerald-500'}`}>▼</div>
+                  <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-emerald-500">▼</div>
                 </div>
               </div>
 
               {/* TEST OVERRIDE SECTION - VISIBLE ONLY WHEN 0 IS SELECTED */}
               {customDays === 0 && (
-                <div className="p-5 border border-red-500/30 bg-red-950/10 rounded-xl space-y-4 animate-fade-in">
-                  <div className="flex gap-3">
-                    <div className="w-3/5">
-                      <label className="text-[9px] font-bold text-red-500/70 uppercase tracking-widest block mb-2">Date (DD/MM/YYYY)</label>
+                <div className="p-5 border border-[#333] bg-[#050505] rounded-xl space-y-5 animate-fade-in shadow-inner">
+                  <h3 className="text-gray-400 text-[10px] font-bold uppercase tracking-[0.2em] flex items-center gap-2 mb-2">
+                    <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    Select Expiry
+                  </h3>
+                  <div className="flex gap-4">
+                    <div className="w-1/2">
+                      <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-2">Date</label>
                       <input 
-                        type="text" 
-                        placeholder="DD/MM/YYYY"
-                        value={manualDateStr} 
-                        onChange={handleDateChange} 
-                        className="w-full bg-black text-white border border-red-500/30 rounded-lg py-2 px-3 focus:outline-none focus:border-red-500 text-sm font-mono text-center placeholder-red-900/50" 
+                        type="date" 
+                        value={overrideDate} 
+                        onChange={(e) => setOverrideDate(e.target.value)} 
+                        className="w-full bg-black text-gray-300 border border-[#333] rounded-lg py-3 px-3 focus:outline-none focus:border-emerald-500 text-sm font-mono cursor-pointer transition-colors" 
                       />
                     </div>
-                    <div className="w-2/5">
-                      <label className="text-[9px] font-bold text-green-500/70 uppercase tracking-widest block mb-2">Time</label>
+                    <div className="w-1/2">
+                      <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-2">Time</label>
                       <input 
                         type="time" 
-                        value={manualTimeStr} 
-                        onChange={(e) => setManualTimeStr(e.target.value)} 
-                        className="w-full bg-black text-white border border-red-500/30 rounded-lg py-2 px-3 focus:outline-none focus:border-red-500 text-sm font-mono text-center" 
+                        value={overrideTime} 
+                        onChange={(e) => setOverrideTime(e.target.value)} 
+                        className="w-full bg-black text-gray-300 border border-[#333] rounded-lg py-3 px-3 focus:outline-none focus:border-emerald-500 text-sm font-mono cursor-pointer transition-colors" 
                       />
                     </div>
                   </div>
                   <button 
                     type="button"
                     onClick={handleManualOverride} 
-                    className="w-full bg-red-900/20 hover:bg-red-900/40 text-red-400 font-bold py-2 rounded-lg uppercase tracking-widest text-[10px] border border-red-500/30 transition-all"
+                    className="w-full bg-[#111] hover:bg-emerald-900/30 text-emerald-400 font-bold py-3.5 rounded-lg uppercase tracking-widest text-[10px] border border-[#333] hover:border-emerald-500/50 transition-all shadow-md"
                   >
-                    SET TIME
+                        Update Configuration
                   </button>
                 </div>
               )}
