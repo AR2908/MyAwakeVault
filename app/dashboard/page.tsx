@@ -31,8 +31,9 @@ export default function Dashboard() {
   const [uploadedFiles, setUploadedFiles] = useState<VaultFile[]>([]);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null); 
   
-  // Test Mode State
-  const [manualDate, setManualDate] = useState("");
+  // Test Mode States (Custom DD/MM/YYYY and Time)
+  const [manualDateStr, setManualDateStr] = useState("");
+  const [manualTimeStr, setManualTimeStr] = useState("");
 
   const [toast, setToast] = useState<{ show: boolean; message: string; type: "success" | "error" | "info" }>({ show: false, message: "", type: "info" });
   const [showDropdown, setShowDropdown] = useState(false);
@@ -120,28 +121,51 @@ export default function Dashboard() {
     } catch { showToast("Connection to mainframe failed.", "error"); }
   };
 
-  // Naya Function: Test Mode Override ke liye
+  // Auto-format for DD/MM/YYYY
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value.replace(/\D/g, ''); // Remove non-digits
+    if (val.length > 2) val = val.slice(0, 2) + '/' + val.slice(2);
+    if (val.length > 5) val = val.slice(0, 5) + '/' + val.slice(5);
+    setManualDateStr(val.slice(0, 10)); // Max 10 chars (DD/MM/YYYY)
+  };
+
   const handleManualOverride = async () => {
-    if (!manualDate) {
-      showToast("Select date and time first.", "error");
+    if (manualDateStr.length !== 10 || !manualTimeStr) {
+      showToast("Please enter complete DD/MM/YYYY and Time.", "error");
       return;
     }
     
-    const isoDate = new Date(manualDate).toISOString();
+    // Parse DD/MM/YYYY
+    const dateParts = manualDateStr.split('/');
+    const day = parseInt(dateParts[0], 10);
+    const month = parseInt(dateParts[1], 10) - 1; // Months are 0-11 in JS
+    const year = parseInt(dateParts[2], 10);
+
+    // Parse Time
+    const timeParts = manualTimeStr.split(':');
+    const hours = parseInt(timeParts[0], 10);
+    const minutes = parseInt(timeParts[1], 10);
+
+    const overrideDate = new Date(year, month, day, hours, minutes);
+    
+    if (isNaN(overrideDate.getTime())) {
+      showToast("Invalid date/time format.", "error");
+      return;
+    }
+
+    const isoDate = overrideDate.toISOString();
     
     try {
       const response = await fetch('/api/vault', {
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
-        // Backend ko batayenge ki override karna hai
         body: JSON.stringify({ status: 'AWAKE', overrideDeadline: isoDate, email: userEmail }) 
       });
       
       const result = await response.json();
       if (result.success) {
         showToast("Test deadline locked in DB.", "success");
-        // Screen par timer turant update karein
-        const diffInSeconds = Math.floor((new Date(isoDate).getTime() - new Date().getTime()) / 1000);
+        const diffInSeconds = Math.floor((overrideDate.getTime() - new Date().getTime()) / 1000);
         setTimeLeft(diffInSeconds > 0 ? diffInSeconds : 0);
       } else {
         showToast("Backend failed to update.", "error");
@@ -457,24 +481,44 @@ export default function Dashboard() {
             </form>
           </div>
 
-          {/* NAYA SECTION: TEST MODE */}
-          <div className="mt-8 rounded-3xl bg-[#110505]/80 backdrop-blur-sm border border-red-500/30 p-8 shadow-2xl relative">
+          {/* NAYA SECTION: TEST MODE with DD/MM/YYYY */}
+          <div className="mt-8 rounded-3xl bg-[#110505]/80 backdrop-blur-sm border border-red-500/30 p-8 shadow-2xl relative sticky top-10">
             <h2 className="text-red-500 text-[10px] font-bold uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-              Test Override (Dev Mode)
+              (Test Mode)
             </h2>
             <div className="space-y-4">
-              <input 
-                type="datetime-local" 
-                value={manualDate} 
-                onChange={(e) => setManualDate(e.target.value)} 
-                className="w-full bg-black text-white border border-red-500/30 rounded-xl py-3 px-4 focus:outline-none focus:border-red-500 text-sm font-mono custom-calendar-icon" 
-              />
+              
+              <div className="flex gap-3">
+                {/* Date Input: DD/MM/YYYY */}
+                <div className="w-3/5">
+                  <label className="text-[9px] font-bold text-red-500/70 uppercase tracking-widest block mb-2">Date (DD/MM/YYYY)</label>
+                  <input 
+                    type="text" 
+                    placeholder="DD/MM/YYYY"
+                    value={manualDateStr} 
+                    onChange={handleDateChange} 
+                    className="w-full bg-black text-white border border-red-500/30 rounded-xl py-3 px-4 focus:outline-none focus:border-red-500 text-sm font-mono text-center placeholder-red-900/50" 
+                  />
+                </div>
+                
+                {/* Time Input */}
+                <div className="w-2/5">
+                  <label className="text-[9px] font-bold text-red-500/70 uppercase tracking-widest block mb-2">Time</label>
+                  <input 
+                    type="time" 
+                    value={manualTimeStr} 
+                    onChange={(e) => setManualTimeStr(e.target.value)} 
+                    className="w-full bg-black text-white border border-red-500/30 rounded-xl py-3 px-4 focus:outline-none focus:border-red-500 text-sm font-mono text-center" 
+                  />
+                </div>
+              </div>
+
               <button 
                 onClick={handleManualOverride} 
-                className="w-full bg-red-900/20 hover:bg-red-900/40 text-red-400 font-bold py-3 rounded-xl uppercase tracking-widest text-[10px] border border-red-500/30 transition-all"
+                className="w-full bg-red-900/20 hover:bg-red-900/40 text-red-400 font-bold py-3 rounded-xl uppercase tracking-widest text-[10px] border border-red-500/30 transition-all mt-2"
               >
-                Force Timer Expiry
+                SET TIMER
               </button>
             </div>
           </div>
