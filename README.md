@@ -1,6 +1,5 @@
 <div align="center">
-  <img src="https://via.placeholder.com/150/020202/10b981?text=MAV" alt="MyAwakeVault Logo" width="120" />
-
+  
   # 🛡️ MyAwake<span style="color: #10b981;">Vault</span>
   **The Ultimate Dead-Man's Switch Protocol**
 
