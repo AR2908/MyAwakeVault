@@ -14,7 +14,7 @@ const backgroundImages = [
 export default function LandingPage() {
   const [bgIndex, setBgIndex] = useState(0);
 
-  // Background Image Slider Logic (Changes every 5 seconds)
+  // Background Image Slider Logic 
   useEffect(() => {
     const interval = setInterval(() => {
       setBgIndex((prevIndex) => (prevIndex + 1) % backgroundImages.length);
