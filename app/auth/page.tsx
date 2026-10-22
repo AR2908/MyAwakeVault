@@ -34,7 +34,7 @@ export default function AuthPage() {
   useEffect(() => {
     const interval = setInterval(() => {
       setBgIndex((prevIndex) => (prevIndex + 1) % backgroundImages.length);
-    }, 5000);
+    }, 1000);
     return () => clearInterval(interval);
   }, []);
 
