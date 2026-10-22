@@ -158,7 +158,7 @@ export default function Dashboard() {
         return;
       }
 
-      // Step 2: Override the Timer
+      // Step 2: Manual Timer
       const response = await fetch('/api/vault', {
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
